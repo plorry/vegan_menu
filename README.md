@@ -1,5 +1,5 @@
 
-cyclin_TO
+Vegan Menu
 =========
 
-WIP game: pseudo-3D bicycle racer
+WIP game: simulation of ordering vegan food at a non-vegan restaurant
