@@ -1,141 +1,64 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var animate = require('gramework').animate,
-    Entity = require('gramework').Entity,
-    _ = require('underscore');
-
-var Biker = exports.Biker = Entity.extend({
-    initialize: function(options) {
-        this.spriteSheet = options.spriteSheet;
-        this.anim = new animate.Animation(this.spriteSheet, "static", {static:
-            {
-                frames: _.range(0,5), rate: 15, loop: true
-            }});
-        this.image = this.anim.update(0);
-        this.anim.setFrame(0);
-    },
-
-    update: function(dt) {
-        this.image = this.anim.update(dt);
-    }
-});
-},{"gramework":5,"underscore":49}],2:[function(require,module,exports){
 var Images = exports.Images = {
-    bike_lane: './assets/bike_lane.png',
-    bg_toronto: './assets/toronto.jpg',
-    biker: './assets/bike_test.png',
-    cityhall: './assets/city_hall.png',
-    hHouse01: './assets/house01.png',
-    shrub01: './assets/shrub01.png',
-    tree01: './assets/tree01.png'
+
 };
 
 var globals = exports.globals = {
     fps: 30
 };
+},{}],2:[function(require,module,exports){
+var DIALOGUE = exports.DIALOGUE = {
+    TEST: '{dish} does not contain {ingredient} then we make the line way longer'
+};
 },{}],3:[function(require,module,exports){
 var gamejs = require('gramework').gamejs,
     conf = require('./conf'),
-    RoadScene = require('./roadscene').RoadScene,
     GameController = require('gramework').input.GameController,
-    Biker = require('./biker').Biker,
     animate = require('gramework').animate,
-    Road = require('./road').Road,
-    Car = require('./road').Car,
+    Scene = require('gramework').Scene,
+    RestoScene = require('./resto_scene').RestoScene,
+    DIALOGUE = require('./data_dialogue').DIALOGUE,
+    TextBlock = require('gramework').uielements.TextBlock,
+    MenuItem = require('gramework').uielements.MenuItem,
     _ = require('underscore');
+
+var PIXEL_SCALE = 2;
 
 // Container for the entire game.
 
-var roadSpec = {
-    turns: {
-        24: {
-            angle: 45,
-            end: 30
-        },
-
-        50: {
-            angle: -45,
-            end: 75
-        }
-    },
-
-    crossStreets: {
-        5: {
-            end: 6
-        },
-
-        20: {
-            end: 21
-        },
-
-        25: {
-            end: 27
-        }
-    },
-
-    bikeLanes: {
-        0: {
-            end: 500
-        }
-    },
-
-    sidewalks: {
-        0: {
-            end: 500
-        }
-    },
-
-    buildings: {
-    }
-};
-
 var Game = exports.Game = function () {
-    _.range(0,500).forEach(function(value){
-        roadSpec.buildings[value/3] = {
-            distance: value /3,
-            height: 200,
-            width: 200,
-            position: 475,
-            side: 'right',
-            imageFile: 'hHouse01'
-        };
-    });
-    _.range(0,50).forEach(function(value){
-        roadSpec.buildings[value / 2 + 0.5] = [{
-            distance: value / 2 + 0.5,
-            height: 200,
-            width: 163,
-            position: 320,
-            side: 'left',
-            imageFile: 'tree01'
-        }];
-    });
-
+    
     this.cont = new GameController();
-    var road = new Road({
-        roadSpec: roadSpec
-    });
-    var bike = new Biker({
-        x:120,
-        y:150,
-        width:64,
-        height:70,
-        spriteSheet: new animate.SpriteSheet(
-            gamejs.image.load(conf.Images.biker),
-            64,
-            70)
-    });
-
+    
     this.paused = false;
 
-    this.scene = new RoadScene({
-        width:320,
+    this.scene = new RestoScene({
+        width:360,
         height:240,
-        pixelScale: 2,
-        road: road,
-        image_path: conf.Images.bg_toronto
+        pixelScale: PIXEL_SCALE
     });
 
-    this.scene.pushEntity(bike);
+    var textBlock = new TextBlock({
+        width: 300,
+        height: 100,
+        x: 0,
+        y: 0,
+        font: '12px Georgia',
+        text: DIALOGUE.TEST.replace(/{dish}/, 'soup').replace(/{ingredient}/, 'fish'),
+        color: [255,255,255, 0]
+    });
+
+    var testItem = new MenuItem({
+        width: 60,
+        height: 20,
+        x: 5,
+        y: 150,
+        font: '12px Arial',
+        text: 'Ask about'
+    });
+
+    this.scene.pushElement(textBlock);
+    this.scene.pushElement(testItem);
 
     this.initialize();
 };
@@ -145,26 +68,22 @@ Game.prototype.initialize = function() {
 
     this.controlMapDown = {
         left: function () {
-            game.scene.tiltLeft();
         },
         up: function () {
-            game.scene.accel();
         },
         right: function () {
-            game.scene.tiltRight();
         },
         down: function () {
-            game.scene.brake();
         },
         action: function() {
 
         },
         mousePos: function(pos) {
-
+            console.log(pos);
+            game.scene.handleMouse(pos);
         },
         menu: function() {
             // MENU
-            console.log(game.scene.road.currentAngle);
         },
         cancel: function() {
         }
@@ -172,22 +91,19 @@ Game.prototype.initialize = function() {
 
     this.controlMapUp = {
         left: function() {
-            game.scene.stopLat();
         },
 
         right: function() {
-            game.scene.stopLat();
         },
 
         up: function() {
-            game.scene.slow();
         }
     }
 
 };
 
 Game.prototype.draw = function(surface) {
-    this.scene.draw(surface, {clear: false});
+    this.scene.draw(surface);
 };
 
 Game.prototype.event = function(ev) {
@@ -201,6 +117,9 @@ Game.prototype.event = function(ev) {
         if (key.action == 'keyUp') {
             this.controlMapUp[key.label]();
         }
+        if (key.action == 'mouseMotion') {
+            this.scene.handleMouse([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
+        }
     }
 };
 
@@ -210,7 +129,7 @@ Game.prototype.update = function(dt) {
     this.scene.update(dt);
 };
 
-},{"./biker":1,"./conf":2,"./road":50,"./roadscene":51,"gramework":5,"underscore":49}],4:[function(require,module,exports){
+},{"./conf":1,"./data_dialogue":2,"./resto_scene":50,"gramework":5,"underscore":49}],4:[function(require,module,exports){
 var gamejs = require('gramework').gamejs,
     Game = require('./game').Game,
     Dispatcher = require('gramework').Dispatcher,
@@ -244,7 +163,7 @@ var images = Object.keys(conf.Images).map(function(img) {
 gramework.init();
 gamejs.preload(images);
 gamejs.ready(main);
-},{"./conf":2,"./game":3,"gramework":5}],5:[function(require,module,exports){
+},{"./conf":1,"./game":3,"gramework":5}],5:[function(require,module,exports){
 var gamejs = require('gamejs'),
     inherits = require('super');
 
@@ -1072,7 +991,7 @@ _.extend(Scene.prototype, {
         _.extend(defaults, options);
 
         if (defaults.clear === true) {
-            this.view.clear();
+            this.view.fill('#444');
             display.clear();
         }
 
@@ -1342,7 +1261,8 @@ _.extend(Element.prototype, Entity.prototype, {
     initialize: function(options) {
         // TODO: Allow borderWidth to accept array to differentiate between vertical width and horizontal width
         this.borderWidth = options.borderWidth || 0;
-        this._show = options.show || false;
+        this._show = options.show || true;
+        this.padding = options.padding || [0,0];
 
         if (options.color) {
             if (options.color.length === 3) {
@@ -1351,7 +1271,7 @@ _.extend(Element.prototype, Entity.prototype, {
                 this.color = 'rgba(' + options.color.join(',') + ')';
             }
         } else {
-            this.color = '#000';
+            this.color = 'rgba(0,0,0,0)';
         }
 
         if (options.borderColor) {
@@ -1392,10 +1312,9 @@ _.extend(Element.prototype, Entity.prototype, {
         if (!this._show) {
             return;
         }
+        gamejs.draw.rect(surface, this.color, this.rect);
         if (this.image) {
             Entity.prototype.draw.apply(this, arguments);
-        } else {
-            gamejs.draw.rect(surface, this.color, this.rect);
         }
 
         if (this.borderImage) {
@@ -1583,12 +1502,10 @@ var TextBlock = Element.extend({
         this.image = new gamejs.Surface(this.rect);
         //this.image.blit(this.fontSurface);
 
-        this.rolling = options.rolling || true;
+        this.rolling = options.rolling || false;
         this.lineHeight = options.lineHeight;
 
-        if (this.rolling) {
-            this.initText();
-        }
+        this.initText();
     },
 
     initText: function() {
@@ -1620,36 +1537,52 @@ var TextBlock = Element.extend({
         }, this);
     },
 
+    iterateChar: function() {
+        this.currentChar++;
+        if (this.currentChar > this.lines[this.currentLine].length) {
+            this.currentLine++;
+            this.currentChar = 0;
+            if (this.currentLine > 1) {
+                this.slideUp(this.lineHeight);
+            }
+        }
+        if (this.currentLine >= this.lines.length) {
+            this.done = true;
+        } else {
+            if (this.currentChar > 0) {
+                this.lineSurfaces[this.currentLine] = this.font.render(
+                    this.lines[this.currentLine].substring(0, this.currentChar),
+                    "#fff");
+                if (!this.lineHeight) {
+                    this.lineHeight = this.lineSurfaces[this.currentLine].getSize()[1];
+                }
+            }
+        }
+    },
+
     update: function(dt) {
-        if (this.done || !this.rolling) {
+        if (this.done && this.rolling) {
             this.doneDuration += dt;
             return;
         }
-        if (this.slide < this.slideTo) {
-            this.slide++;
-        } else {
-            this.charTimer += dt;
-            if (this.charTimer >= this.charDuration) {
-                this.currentChar++;
-                this.charTimer = 0;
-            }
-            if (this.currentChar > this.lines[this.currentLine].length) {
-                this.currentLine++;
-                this.currentChar = 0;
-                if (this.currentLine > 1) {
-                    this.slideUp(this.lineHeight);
-                }
-            }
-            if (this.currentLine >= this.lines.length) {
-                this.done = true;
+        if (this.rolling) {
+            if (this.slide < this.slideTo) {
+                this.slide++;
             } else {
-                if (this.currentChar > 0) {
-                    this.lineSurfaces[this.currentLine] = this.font.render(
-                        this.lines[this.currentLine].substring(0, this.currentChar),
-                        "#fff");
+            
+                this.charTimer += dt;
+                if (this.charTimer >= this.charDuration) {
+                    this.iterateChar();
+                    this.charTimer = 0;
                 }
-            }
-        }
+            } 
+        } else {
+            this.currentLine = 0;
+            this.currentChar = 0;
+             for (var i = 0; i <= this.text.length; i++) {
+                this.iterateChar();
+             }
+         }
     },
 
     draw: function(surface) {
@@ -1657,7 +1590,7 @@ var TextBlock = Element.extend({
         this.lineSurfaces.forEach(function(lineSurface, index, array){
             this.image.blit(lineSurface, [0, (this.lineHeight * index) - this.slide]);
         }, this);
-        Element.prototype.draw.apply(this, arguments);
+        TextBlock.super_.prototype.draw.apply(this, arguments);
     },
 
     setText: function(string) {
@@ -1670,9 +1603,32 @@ var TextBlock = Element.extend({
     }
 });
 
+
+var MenuItem = TextBlock.extend({
+    initialize: function(options) {
+        MenuItem.super_.prototype.initialize.apply(this, arguments);
+        this.action = options.action || function() {};
+        this.defaultColor = this.color;
+        this.hoverColor = 'rgba(255,255,255,0.5)';
+    },
+
+    hoverOver: function() {
+        this.color = this.hoverColor;
+    },
+
+    unHover: function() {
+        this.color = this.defaultColor;
+    },
+
+    draw: function(display) {
+        MenuItem.super_.prototype.draw.apply(this, arguments);
+    }
+});
+
 module.exports = {
     Element: Element,
-    TextBlock: TextBlock
+    TextBlock: TextBlock,
+    MenuItem: MenuItem
 };
 
 /*
@@ -8616,548 +8572,30 @@ exports.merge = function (arr) {
 },{}],49:[function(require,module,exports){
 module.exports=require(48)
 },{}],50:[function(require,module,exports){
-var gamejs = require('gramework').gamejs,
-    Entity = require('gramework').Entity,
-    _ = require('underscore'),
-    conf = require('./conf');
-
-ANGLE_SCALE_CONSTANT = 100;
-
-var Building = exports.Building = Entity.extend({
-    init: function(options) {
-        this.height = options.height;
-        this.width = options.width;
-        this.color = options.color;
-        this.distance = options.distance;
-        this.currentDistance = 0;
-        this.road = options.road;
-        this.diffDistance = this.distance - this.road.currentDistance;
-        this.scaleFactor;
-    },
-
-    update: function(dt) {
-        this.diffDistance = this.distance - this.road.currentDistance;
-
-        this.scaleFactor = 1 / (this.diffDistance);
-        this.buildingAngleOffset = thisLine.angleOffset * this.scaleFactor;
-        var buildingWidth = building.width * this.scaleFactor;
-        var buildingHeight = building.height * this.scaleFactor;
-        var buildingCenter = building.position || 0;
-        if (building.side == 'left') {
-
-        }
-        var buildingRect = new gamejs.Rect(
-            [(this.displayWidth/2) + (0 - this.center + buildingCenter) * buildingScale - buildingAngleOffset, height - buildingHeight],
-            [buildingWidth, buildingHeight]
-            );
-
-        if (building.image) {
-            display.blit(building.image, buildingRect);
-        } else {
-            gamejs.draw.rect(display, "rgb(200,0,0)", buildingRect);
-        }
-    }
-});
-
-var Road = exports.Road = function(options) {
-    this.init(options);
-};
-
-Road.prototype = {
-    init: function(options) {
-        this.length = options.length;
-        this.loadRoad(options.roadSpec);
-        this.currentAngle = 0;
-        this.currentDistance = 0;
-        this.center = 0;
-        this.displayWidth;
-        this.displayHeight;
-        this.lineProperties = [];
-        this.viewProperties = this.getRoadPropertiesAt(this.currentDistance);
-        this.toDraw = {};
-        var buildings = this.currentRoad.buildings;
-        var imageKeys = [];
-        this.images = {};
-        for (building in buildings) {
-            if (Array.isArray(buildings[building])) {
-                buildings[building].forEach(function(thing){
-                    if (imageKeys.indexOf(thing.imageFile) < 0) {
-                        imageKeys.push(thing.imageFile);
-                    }
-                }, this);
-            } else if (buildings[building].imageFile) {
-                if (imageKeys.indexOf(buildings[building].imageFile) < 0) {
-                    imageKeys.push(buildings[building].imageFile);
-                }
-            }
-        }
-        imageKeys.forEach(function(key){
-            this.images[key] = gamejs.image.load(conf.Images[key]);
-        }, this);
-
-        for (building in buildings) {
-            if (Array.isArray(buildings[building])) {
-                buildings[building].forEach(function(thing){
-                    if (thing.side === 'left') {
-                        thing.image = gamejs.transform.flip(this.images[thing.imageFile], true);
-                    } else {
-                        thing.image = this.images[thing.imageFile];
-                    }
-                }, this);
-            } else if (buildings[building].imageFile) {
-                if (buildings[building].side === 'left') {
-                    buildings[building].image = gamejs.transform.flip(this.images[buildings[building].imageFile], true);
-                } else {
-                    buildings[building].image = this.images[buildings[building].imageFile];
-                }
-            }
-        }
-
-        var scanlines = _.range(0,201),
-            line;
-        this.lines = [];
-
-        scanlines.forEach(function(lineNo) {
-            this.lineProperties[lineNo] = {
-                diffDistance: 100 / (201 - lineNo)
-            };
-
-            line = new Line({
-                road: this,
-                lineNo: lineNo
-            });
-
-            this.lines.push(line);
-            this.toDraw[line.diffDistance] = [line];
-        }, this);
-
-        console.log(this.toDraw);
-
-    },
-
-    setDistance: function(distance) {
-        this.currentDistance = distance;
-    },
-
-    setCenter: function(center) {
-        this.center = center;
-    },
-
-    loadRoad: function(roadSpec) {
-        this.currentRoad = roadSpec;
-    },
-
-    // Helper Methods to get the road properties at a given distance
-    getAngleAt: function(distance) {
-        var angle = 0;
-        for (d in this.upcomingTurns) {
-            turn = this.upcomingTurns[d];
-            if (distance >= d && distance <= turn.end) {
-                angle = turn.angle * (distance - d) / (turn.end - d);
-                this.lastTurn = turn;
-                break;
-            }
-        }
-        for (d in this.currentRoad.turns) {
-            turn = this.currentRoad.turns[d];
-            if (distance > turn.end) {
-                angle += turn.angle;
-            }
-            if (d > this.currentDistance + 200) {
-                break;
-            }
-        }
-        return angle * 0.017;
-    },
-
-    getAngleOffsetAt: function(distance) {
-
-    },
-
-    getDeltaAngle: function() {
-        return this.lineProperties[1].angle - this.lineProperties[0].angle || 0;
-    },
-
-    getAltitudeAt: function(distance) {
-        return 0;
-    },
-
-    getWidthAt: function(distance) {
-        return 10;
-    },
-
-    isCrossStreet: function(distance) {
-        var crossStreets = this.currentRoad.crossStreets,
-            street;
-        for (street in crossStreets) {
-            if (distance >= street && distance <= crossStreets[street].end) {
-                return true;
-            }
-            if (street > this.currentDistance + 200) {
-                break;
-            }
-        }
-        return false;
-    },
-
-    isBikeLane: function(distance) {
-        var bikeLanes = this.currentRoad.bikeLanes,
-            lane;
-        for (lane in bikeLanes) {
-            if (distance >= lane && distance <= bikeLanes[lane].end) {
-                return true;
-            }
-            if (lane > this.currentDistance + 200) {
-                break;
-            }
-        }
-        return false;
-    },
-
-    isSidewalk: function(distance) {
-        var sidewalks = this.currentRoad.sidewalks,
-            sidewalk;
-        for (sidewalk in sidewalks) {
-            if (distance >= sidewalk && distance <= sidewalks[sidewalk].end) {
-                return true;
-            }
-            if (sidewalk > this.currentDistance + 200) {
-                break;
-            }
-        }
-        return false;
-    },
-
-    getRoadPropertiesAt: function(distance) {
-        var road = this;
-        var properties = {
-            distance: distance,
-            width: road.getWidthAt(distance),
-            altitude: road.getAltitudeAt(distance),
-            angle: road.getAngleAt(distance)
-        };
-        return properties;
-    },
-
-    collectBuildings: function(distance) {
-        currentBuildings = {};
-        for (i in this.currentRoad.buildings) {
-            if (i < distance) {
-
-            }
-            if (i >= distance && i <= distance + 100) {
-                currentBuildings[i] = this.currentRoad.buildings[i];
-            } 
-            if (i > this.currentDistance + 100) {
-                break;
-            }
-        }
-        return currentBuildings;
-    },
-
-    collectTurns: function(distance) {
-        var upcomingTurns = {};
-        for (i in this.currentRoad.turns) {
-            turn = this.currentRoad.turns[i];
-            if (turn.end + 1 >= distance && i <= distance + 200) {
-                upcomingTurns[i] = this.currentRoad.turns[i];
-            }
-        }
-        return upcomingTurns;
-    },
-
-    collectProperties: function() {
-        var scanlines = _.range(0, 201);
-
-        scanlines.forEach(function(lineNo) {
-            thisLine = this.lineProperties[lineNo];
-            lastLine = this.lineProperties[lineNo - 1];
-            thisLine.distance = this.currentDistance + thisLine.diffDistance;
-            thisLine.angle = this.getAngleAt(thisLine.distance);
-            thisLine.altitude = this.getAltitudeAt(thisLine.distance);
-            thisLine.width = this.getWidthAt(thisLine.distance);
-
-            var deltaAngle = this.viewProperties.angle - thisLine.angle; 
-            
-            if (lastLine) {
-                var deltaDistance = lastLine.diffDistance - thisLine.diffDistance;
-                thisLine.angleOffset = lastLine.angleOffset + Math.tan(deltaAngle) * deltaDistance * ANGLE_SCALE_CONSTANT;
-            } else {
-                thisLine.angleOffset = 0;
-            }
-        }, this);
-    },
-
-    update: function(dt) {
-        this.drawBuildings = this.collectBuildings(this.currentDistance);
-        this.upcomingTurns = this.collectTurns(this.currentDistance);
-        this.currentAngle = this.getAngleAt(this.currentDistance);
-        this.viewProperties = this.getRoadPropertiesAt(this.currentDistance);
-        this.collectProperties();
-    },
-
-    drawLine: function(display, lineNo) {
-        var thisLine = this.lineProperties[lineNo];
-        var diffDistance = thisLine.diffDistance;
-        var distance = thisLine.distance;
-        var nextDistance = this.lineProperties[lineNo - 1].distance;
-
-        var buildings = [];
-        var scaleFactor = 1 / diffDistance;
-
-        var altitude = thisLine.altitude;
-        var angle = thisLine.angle;
-
-        var diffAlt = altitude - this.viewProperties.altitude;
-
-        var height = 300 - lineNo + (diffAlt / diffDistance);
-        var width = thisLine.width * 30 / diffDistance;
-
-        var offset = (this.center + thisLine.angleOffset) / diffDistance;
-        // Check buildings
-        for (i in this.drawBuildings) {
-            if (i >= nextDistance && i <= distance) {
-                if (Array.isArray(this.drawBuildings[i])) {
-                    this.drawBuildings[i].forEach(function(building){
-                        buildings.push(building);
-                    });
-                } else {
-                    buildings.push(this.drawBuildings[i]);
-                }
-            }
-            if (i > distance) {
-                break;
-            }
-        }
-        //Now we draw
-        var stripe = Math.floor(Math.cos(distance * 3));
-        // Draw the grass
-        var grassRect = new gamejs.Rect([0,height], [this.displayWidth,300])
-        gamejs.draw.rect(display, "rgb(0,200,0)", grassRect);
-        // Draw the road
-        gamejs.draw.line(display, "rgb(50,50,50)", [(this.displayWidth/2)-width-offset,height], [(this.displayWidth/2)+width-offset,height],2);
-        gamejs.draw.rect(display, "rgb(50,50,50)", new gamejs.Rect(
-            [(this.displayWidth/2)-(width)-offset,height], [2*width,this.displayHeight]));
-
-        if (stripe) {
-            gamejs.draw.line(display, "#fff", [(this.displayWidth/2)-(width/50)-offset,height], [(this.displayWidth/2)+(width/50)-offset,height],2);
-        }
-        
-        if (this.isCrossStreet(distance)) {
-            gamejs.draw.line(display, "rgb(50,50,50)", [0,height],[this.displayWidth, height],2);
-        }
-
-        if (this.isBikeLane(distance)) {
-            gamejs.draw.line(display, "#fff", [(this.displayWidth/2)-(width/50)-offset-width+(100/diffDistance),height], [(this.displayWidth/2)+(width/50)-offset-width+(100/diffDistance),height],2);
-            gamejs.draw.line(display, "#fff", [(this.displayWidth/2)-(width/50)-offset+width-(100/diffDistance),height], [(this.displayWidth/2)+(width/50)-offset+width-(100/diffDistance),height],2);
-        }
-
-        if (this.isSidewalk(distance)) {
-            gamejs.draw.line(display, "#aaa", [(this.displayWidth/2)-(width/10)-offset-width-(width/10)-(50/diffDistance),height + 1], [(this.displayWidth/2)+(width/10)-offset-width+(width/10)-(50/diffDistance),height + 1],2);
-            gamejs.draw.line(display, "#aaa", [(this.displayWidth/2)-(width/10)-offset+width-(50/diffDistance),height + 1], [(this.displayWidth/2)+(width/10)-offset+width+(width/10)+(50/diffDistance),height + 1],2);
-        }
-        
-        buildings.forEach(function(building){
-            var buildingScale = 1 / (building.distance - this.viewProperties.distance);
-            var buildingAngleOffset = thisLine.angleOffset * buildingScale;
-            var buildingWidth = building.width * buildingScale;
-            var buildingHeight = building.height * buildingScale;
-            var buildingCenter = building.position || 0;
-            if (building.side == 'left') {
-
-            }
-            var buildingRect = new gamejs.Rect(
-                [(this.displayWidth/2) + (0 - this.center + buildingCenter) * buildingScale - buildingAngleOffset, height - buildingHeight],
-                [buildingWidth, buildingHeight]
-                );
-
-            if (building.image) {
-                display.blit(building.image, buildingRect);
-            } else {
-                gamejs.draw.rect(display, "rgb(200,0,0)", buildingRect);
-            }
-        }, this);
-    },
-
-    draw: function(display) {
-        // Render the road at the given distance
-        if (!this.displayWidth && !this.displayHeight) {
-            this.displayWidth = display.getSize()[0];
-            this.displayHeight = display.getSize()[1];
-        }
-        var scanlines = _.range(200,0,-1),
-            distanceVal, i,
-            distanceVals = [];
-        /*
-        scanlines.forEach(function(line) {
-            this.drawLine(display, line);
-        }, this);
-        */
-        for (distanceVal in this.toDraw) {
-            distanceVals.push(distanceVal);
-        }
-
-        distanceVals.sort(function(a, b) {
-            return a - b;
-        });
-
-        for (i = distanceVals.length - 1; i > 0; i--) {
-            distanceVal = distanceVals[i];
-            this.toDraw[distanceVal].forEach(function(item) {
-                item.draw(display);
-            });
-        }
-    }
-
-
-};
-
-var Line = function(options) {
-    this.init(options);
-};
-
-Line.prototype = {
-    init: function(options) {
-        this.road = options.road;
-        this.lineNo = options.lineNo;
-        this.diffDistance = 100 / (201 - this.lineNo);
-    },
-
-    draw: function(display) {
-        var thisLine = this.road.lineProperties[this.lineNo];
-
-        var diffDistance = thisLine.diffDistance;
-        var distance = thisLine.distance;
-
-        var nextDistance = this.road.lineProperties[this.lineNo - 1].distance;
-
-        var buildings = [];
-        var scaleFactor = 1 / diffDistance;
-
-        var altitude = thisLine.altitude;
-        var angle = thisLine.angle;
-
-        var diffAlt = altitude - this.road.viewProperties.altitude;
-
-        var height = 300 - this.lineNo + (diffAlt / diffDistance);
-        var width = thisLine.width * 30 / diffDistance;
-
-        var offset = (this.road.center + thisLine.angleOffset) / diffDistance;
-        // Check buildings
-        
-        for (i in this.drawBuildings) {
-            if (i >= nextDistance && i <= distance) {
-                if (Array.isArray(this.drawBuildings[i])) {
-                    this.drawBuildings[i].forEach(function(building){
-                        buildings.push(building);
-                    });
-                } else {
-                    buildings.push(this.drawBuildings[i]);
-                }
-            }
-            if (i > distance) {
-                break;
-            }
-        }
-        //Now we draw
-        var stripe = Math.floor(Math.cos(distance * 3));
-        // Draw the grass
-        var grassRect = new gamejs.Rect([0,height], [this.road.displayWidth,300])
-        //gamejs.draw.rect(display, "rgb(0,200,0)", grassRect);
-        // Draw the road
-        gamejs.draw.line(display, "rgb(50,50,50)", [(this.displayWidth/2)-width-offset,height], [(this.displayWidth/2)+width-offset,height],2);
-        gamejs.draw.rect(display, "rgb(50,50,50)", new gamejs.Rect(
-            [(this.road.displayWidth/2)-(width)-offset,height], [2*width,this.road.displayHeight]));
-
-        if (stripe) {
-            gamejs.draw.line(display, "#fff", [(this.road.displayWidth/2)-(width/50)-offset,height], [(this.road.displayWidth/2)+(width/50)-offset,height],2);
-        }
-        
-        if (this.road.isCrossStreet(distance)) {
-            gamejs.draw.line(display, "rgb(50,50,50)", [0,height],[this.road.displayWidth, height],2);
-        }
-
-        if (this.road.isBikeLane(distance)) {
-            gamejs.draw.line(display, "#fff", [(this.road.displayWidth/2)-(width/50)-offset-width+(100/diffDistance),height], [(this.road.displayWidth/2)+(width/50)-offset-width+(100/diffDistance),height],2);
-            gamejs.draw.line(display, "#fff", [(this.road.displayWidth/2)-(width/50)-offset+width-(100/diffDistance),height], [(this.road.displayWidth/2)+(width/50)-offset+width-(100/diffDistance),height],2);
-        }
-
-        if (this.road.isSidewalk(distance)) {
-            gamejs.draw.line(display, "#aaa", [(this.road.displayWidth/2)-(width/10)-offset-width-(width/10)-(50/diffDistance),height + 1], [(this.road.displayWidth/2)+(width/10)-offset-width+(width/10)-(50/diffDistance),height + 1],2);
-            gamejs.draw.line(display, "#aaa", [(this.road.displayWidth/2)-(width/10)-offset+width-(50/diffDistance),height + 1], [(this.road.displayWidth/2)+(width/10)-offset+width+(width/10)+(50/diffDistance),height + 1],2);
-        }
-    }
-};
-
-var Car = exports.Car = _.extend(Building, {
-
-});
-},{"./conf":2,"gramework":5,"underscore":49}],51:[function(require,module,exports){
 var Scene = require('gramework').Scene,
-    gamejs = require('gramework').gamejs;
+    _ = require('underscore');
 
-var RoadScene = exports.RoadScene = Scene.extend({
+var RestoScene = exports.RestoScene = Scene.extend({
     initialize: function(options) {
-        this.distance = 0;
-        this.center = 0;
-        this.speed = 0;
-        this.maxSpeed = 0.2;
-        this._accel = 0;
-        this.road = options.road;
-        this.image = gamejs.image.load(options.image_path)
-        this.latSpeed = 0;
+        this.name = options.name;
     },
 
-    tiltLeft: function() {
-        this.latSpeed = -5;
-    },
-
-    tiltRight: function() {
-        this.latSpeed = 5;
-    },
-
-    stopLat: function() {
-        this.latSpeed = 0;
-    },
-
-    accel: function() {
-        this._accel = 0.001;
-    },
-
-    brake: function() {
-        this._accel = -0.01;
-    },
-
-    slow: function() {
-        this._accel = -0.001;
+    handleMouse: function(pos) {
+        this.elements.forEach(function(element) {
+            if (element.rect.collidePoint(pos)) {
+                if (element.hoverOver) {
+                    element.hoverOver();
+                }
+            } else {
+                if (element.unHover) {
+                    element.unHover();
+                }
+            }
+        });
     },
 
     update: function(dt) {
-        this.center += this.latSpeed + (this.road.getDeltaAngle() * this.speed * 200000);
-        if (this.speed <= this.maxSpeed) {
-            this.speed += this._accel;
-        }
-        if (this.speed > this.maxSpeed) {
-            this.speed = this.maxSpeed;
-        }
-        if (this.speed < 0) {
-            this.speed = 0;
-        }
-        this.distance += this.speed;
-        this.road.update(dt);
-        this.road.setDistance(this.distance);
-        this.road.setCenter(this.center);
-        RoadScene.super_.prototype.update.call(this, dt);
-    },
-
-    draw: function(display, options) {
-        this.view.clear();
-        display.clear();
-        var rect = new gamejs.Rect([0,0,240,320])
-        //gamejs.draw.rect(this.view, "#fff", rect);
-        this.view.blit(this.image);
-        this.road.draw(this.view);
-        RoadScene.super_.prototype.draw.call(this, display, options);
+        RestoScene.super_.prototype.update.apply(this, arguments);
     }
 });
-},{"gramework":5}]},{},[4])
+},{"gramework":5,"underscore":49}]},{},[4])

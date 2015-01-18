@@ -3,7 +3,13 @@ var gamejs = require('gramework').gamejs,
     GameController = require('gramework').input.GameController,
     animate = require('gramework').animate,
     Scene = require('gramework').Scene,
+    RestoScene = require('./resto_scene').RestoScene,
+    DIALOGUE = require('./data_dialogue').DIALOGUE,
+    TextBlock = require('gramework').uielements.TextBlock,
+    MenuItem = require('gramework').uielements.MenuItem,
     _ = require('underscore');
+
+var PIXEL_SCALE = 2;
 
 // Container for the entire game.
 
@@ -13,11 +19,33 @@ var Game = exports.Game = function () {
     
     this.paused = false;
 
-    this.scene = new Scene({
-        width:320,
+    this.scene = new RestoScene({
+        width:360,
         height:240,
-        pixelScale: 2
+        pixelScale: PIXEL_SCALE
     });
+
+    var textBlock = new TextBlock({
+        width: 300,
+        height: 100,
+        x: 0,
+        y: 0,
+        font: '12px Georgia',
+        text: DIALOGUE.TEST.replace(/{dish}/, 'soup').replace(/{ingredient}/, 'fish'),
+        color: [255,255,255, 0]
+    });
+
+    var testItem = new MenuItem({
+        width: 60,
+        height: 20,
+        x: 5,
+        y: 150,
+        font: '12px Arial',
+        text: 'Ask about'
+    });
+
+    this.scene.pushElement(textBlock);
+    this.scene.pushElement(testItem);
 
     this.initialize();
 };
@@ -38,7 +66,8 @@ Game.prototype.initialize = function() {
 
         },
         mousePos: function(pos) {
-
+            console.log(pos);
+            game.scene.handleMouse(pos);
         },
         menu: function() {
             // MENU
@@ -61,7 +90,7 @@ Game.prototype.initialize = function() {
 };
 
 Game.prototype.draw = function(surface) {
-    this.scene.draw(surface, {clear: false});
+    this.scene.draw(surface);
 };
 
 Game.prototype.event = function(ev) {
@@ -74,6 +103,9 @@ Game.prototype.event = function(ev) {
         }
         if (key.action == 'keyUp') {
             this.controlMapUp[key.label]();
+        }
+        if (key.action == 'mouseMotion') {
+            this.scene.handleMouse([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
         }
     }
 };
