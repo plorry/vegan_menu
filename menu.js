@@ -17,6 +17,16 @@ _.extend(Ingredient.prototype, {
     }
 });
 
+var load_ingredients = exports.load_ingredients = function(ingredients_list) {
+    var ingredients = {};
+    for (ingredient in ingredients_list) {
+        ingredients[ingredient] = new Ingredient(
+            ingredient,
+            ingredients_list[ingredient]);
+    }
+    return ingredients;
+};
+
 var Dish = exports.Dish = function(name, options) {
     this.type = 'dish';
     this.name = name;
@@ -26,7 +36,6 @@ var Dish = exports.Dish = function(name, options) {
 _.extend(Dish.prototype, {
     init: function(options) {
         this.ingredients = options.ingredients || [];
-        this.optionalIngredients = options.
         this.isVegan;
         this.updateIsVegan();
     },
@@ -60,6 +69,14 @@ var Menu = exports.Menu = function(name, options) {
 
 _.extend(Menu.prototype, {
     init: function(options) {
+        this.dishes = options.dishes || [];
+    },
 
+    addDish: function(dish) {
+        this.dishes.push(dish);
+    },
+
+    listDishes: function() {
+        return this.dishes;
     }
 });

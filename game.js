@@ -7,6 +7,8 @@ var gamejs = require('gramework').gamejs,
     DIALOGUE = require('./data_dialogue').DIALOGUE,
     TextBlock = require('gramework').uielements.TextBlock,
     MenuItem = require('gramework').uielements.MenuItem,
+    load_ingredients = require('./menu').load_ingredients,
+    INGREDIENTS = require('./data_ingredients').INGREDIENTS,
     _ = require('underscore');
 
 var PIXEL_SCALE = 2;
@@ -16,6 +18,8 @@ var PIXEL_SCALE = 2;
 var Game = exports.Game = function () {
     
     this.cont = new GameController();
+
+    this.ingredients = load_ingredients(INGREDIENTS);
     
     this.paused = false;
 
@@ -37,15 +41,25 @@ var Game = exports.Game = function () {
 
     var testItem = new MenuItem({
         width: 60,
-        height: 20,
+        height: 15,
         x: 5,
         y: 150,
         font: '12px Arial',
         text: 'Ask about'
     });
 
+    var testItem2 = new MenuItem({
+        width: 60,
+        height: 15,
+        x: 5,
+        y: 170,
+        font: '12px Arial',
+        text: 'Order'
+    });
+
     this.scene.pushElement(textBlock);
     this.scene.pushElement(testItem);
+    this.scene.pushElement(testItem2);
 
     this.initialize();
 };
@@ -66,7 +80,6 @@ Game.prototype.initialize = function() {
 
         },
         mousePos: function(pos) {
-            console.log(pos);
             game.scene.handleMouse(pos);
         },
         menu: function() {
@@ -106,6 +119,9 @@ Game.prototype.event = function(ev) {
         }
         if (key.action == 'mouseMotion') {
             this.scene.handleMouse([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
+        }
+        if (key.action == 'mouseDown') {
+            console.log(key.value);
         }
     }
 };
