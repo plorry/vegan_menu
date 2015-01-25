@@ -14,6 +14,10 @@ _.extend(Ingredient.prototype, {
         this.isFish = options.isFish || false;
         this.isGluten = options.isGluten || false;
         this.isTrace = options.isTrace || false;
+    },
+
+    isVegan: function() {
+        return (!this.isMeat && !this.isDairy && !this.isEgg && !this.isFish);
     }
 });
 
@@ -36,23 +40,20 @@ var Dish = exports.Dish = function(name, options) {
 _.extend(Dish.prototype, {
     init: function(options) {
         this.ingredients = options.ingredients || [];
-        this.isVegan;
-        this.updateIsVegan();
     },
 
-    updateIsVegan: function() {
-        this.isVegan = true;
+    isVegan: function() {
+        var isVegan = true;
         this.ingredients.forEach(function(ingredient){
-            if (!ingredient.isVegan) {
+            if (!ingredient.isVegan()) {
                 this.isVegan = false;
-                return;
             }
         }, this);
+        return isVegan;
     },
 
     addIngredient: function(ingredient) {
         this.ingredients.push(ingredient);
-        this.updateIsVegan();
     },
 
     removeIngredient: function(ingredient) {

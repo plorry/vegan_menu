@@ -26,17 +26,8 @@ var Game = exports.Game = function () {
     this.scene = new RestoScene({
         width:360,
         height:240,
-        pixelScale: PIXEL_SCALE
-    });
-
-    var textBlock = new TextBlock({
-        width: 300,
-        height: 100,
-        x: 0,
-        y: 0,
-        font: '12px Georgia',
-        text: DIALOGUE.TEST.replace(/{dish}/, 'soup').replace(/{ingredient}/, 'fish'),
-        color: [255,255,255, 0]
+        pixelScale: PIXEL_SCALE,
+        DIALOGUE: DIALOGUE.WAITER
     });
 
     var testItem = new MenuItem({
@@ -45,7 +36,8 @@ var Game = exports.Game = function () {
         x: 5,
         y: 150,
         font: '12px Arial',
-        text: 'Ask about'
+        text: 'Ask about',
+        action: 'PROMPT_DISH_REQUEST'
     });
 
     var testItem2 = new MenuItem({
@@ -57,7 +49,6 @@ var Game = exports.Game = function () {
         text: 'Order'
     });
 
-    this.scene.pushElement(textBlock);
     this.scene.pushElement(testItem);
     this.scene.pushElement(testItem2);
 
@@ -121,7 +112,7 @@ Game.prototype.event = function(ev) {
             this.scene.handleMouse([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
         }
         if (key.action == 'mouseDown') {
-            console.log(key.value);
+            this.scene.handleClick([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
         }
     }
 };

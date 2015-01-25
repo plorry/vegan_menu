@@ -8,7 +8,12 @@ var globals = exports.globals = {
 };
 },{}],2:[function(require,module,exports){
 var DIALOGUE = exports.DIALOGUE = {
-    TEST: '{dish} does not contain {ingredient} then we make the line way longer'
+    WAITER: {
+        PROMPT_ASK_IF_READY: 'Yes, are you ready to order?',
+        PROMPT_DISH_REQUEST: 'Which dish would you like to ask about?',
+        RESPONSE_DOES_CONTAIN: 'Yes, there is {ingredient} in the {dish}.',
+        RESPONSE_DOES_NOT_CONTAIN: 'No, the {dish} does not contain {ingredient}.'
+    }
 };
 },{}],3:[function(require,module,exports){
 var INGREDIENTS = exports.INGREDIENTS = {
@@ -60,17 +65,8 @@ var Game = exports.Game = function () {
     this.scene = new RestoScene({
         width:360,
         height:240,
-        pixelScale: PIXEL_SCALE
-    });
-
-    var textBlock = new TextBlock({
-        width: 300,
-        height: 100,
-        x: 0,
-        y: 0,
-        font: '12px Georgia',
-        text: DIALOGUE.TEST.replace(/{dish}/, 'soup').replace(/{ingredient}/, 'fish'),
-        color: [255,255,255, 0]
+        pixelScale: PIXEL_SCALE,
+        DIALOGUE: DIALOGUE.WAITER
     });
 
     var testItem = new MenuItem({
@@ -79,7 +75,8 @@ var Game = exports.Game = function () {
         x: 5,
         y: 150,
         font: '12px Arial',
-        text: 'Ask about'
+        text: 'Ask about',
+        action: 'PROMPT_DISH_REQUEST'
     });
 
     var testItem2 = new MenuItem({
@@ -91,7 +88,6 @@ var Game = exports.Game = function () {
         text: 'Order'
     });
 
-    this.scene.pushElement(textBlock);
     this.scene.pushElement(testItem);
     this.scene.pushElement(testItem2);
 
@@ -155,7 +151,7 @@ Game.prototype.event = function(ev) {
             this.scene.handleMouse([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
         }
         if (key.action == 'mouseDown') {
-            console.log(key.value);
+            this.scene.handleClick([Math.floor(key.value[0]/PIXEL_SCALE), Math.floor(key.value[1]/PIXEL_SCALE)]);
         }
     }
 };
@@ -217,6 +213,10 @@ _.extend(Ingredient.prototype, {
         this.isFish = options.isFish || false;
         this.isGluten = options.isGluten || false;
         this.isTrace = options.isTrace || false;
+    },
+
+    isVegan: function() {
+        return (!this.isMeat && !this.isDairy && !this.isEgg && !this.isFish);
     }
 });
 
@@ -239,23 +239,20 @@ var Dish = exports.Dish = function(name, options) {
 _.extend(Dish.prototype, {
     init: function(options) {
         this.ingredients = options.ingredients || [];
-        this.isVegan;
-        this.updateIsVegan();
     },
 
-    updateIsVegan: function() {
-        this.isVegan = true;
+    isVegan: function() {
+        var isVegan = true;
         this.ingredients.forEach(function(ingredient){
-            if (!ingredient.isVegan) {
+            if (!ingredient.isVegan()) {
                 this.isVegan = false;
-                return;
             }
         }, this);
+        return isVegan;
     },
 
     addIngredient: function(ingredient) {
         this.ingredients.push(ingredient);
-        this.updateIsVegan();
     },
 
     removeIngredient: function(ingredient) {
@@ -1735,7 +1732,7 @@ var TextBlock = Element.extend({
 var MenuItem = TextBlock.extend({
     initialize: function(options) {
         MenuItem.super_.prototype.initialize.apply(this, arguments);
-        this.action = options.action || function() {};
+        this.action = options.action;
         this.defaultColor = this.color;
         this.hoverColor = 'rgba(255,255,255,0.5)';
     },
@@ -8701,11 +8698,54 @@ exports.merge = function (arr) {
 module.exports=require(50)
 },{}],52:[function(require,module,exports){
 var Scene = require('gramework').Scene,
+    TextBlock = require('gramework').uielements.TextBlock,
     _ = require('underscore');
 
 var RestoScene = exports.RestoScene = Scene.extend({
     initialize: function(options) {
         this.name = options.name;
+        this.dialogueBox = new TextBlock({
+            width: 300,
+            height: 100,
+            x: 0,
+            y: 0,
+            font: '12px Georgia',
+            color: [255,255,255, 0],
+            rolling: true
+        });
+
+        this.dialogueVars = {
+            ingredient: 'fish',
+            dish: 'soup'
+        }
+        this.DIALOGUE = options.DIALOGUE;
+        this.pushElement(this.dialogueBox);
+        this.menu = options.menu;
+
+        var resto = this;
+
+        this.menuActions = {
+            'PROMPT_DISH_REQUEST': function() {
+                resto.setText(resto.DIALOGUE.PROMPT_DISH_REQUEST);
+                resto.listDishes();
+            }
+        };
+    },
+
+    listDishes: function() {
+
+    },
+
+    replaceVars: function(text) {
+        var outText = text;
+        for (key in this.dialogueVars) {
+            outText = outText.replace('{' + key + '}', this.dialogueVars[key]);
+        }
+        return outText;
+    },
+
+    setText: function(text) {
+        this.dialogueBox.setText(this.replaceVars(text));
     },
 
     handleMouse: function(pos) {
@@ -8720,6 +8760,16 @@ var RestoScene = exports.RestoScene = Scene.extend({
                 }
             }
         });
+    },
+
+    handleClick: function(pos) {
+        this.elements.forEach(function(element) {
+            if (element.rect.collidePoint(pos)) {
+                if (element.action) {
+                    this.menuActions[element.action]();
+                }
+            }
+        }, this);
     },
 
     update: function(dt) {
